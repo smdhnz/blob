@@ -1,0 +1,58 @@
+services:
+  server:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    user: "${PUID}:${PGID}"
+    environment:
+      - BLOB_SECRET_KEY=${BLOB_SECRET_KEY}
+      - PORT=8080
+    volumes:
+      - ./data:/app/data
+    restart: always
+    init: true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          memory: 128M
+
+  tunnel:
+    build:
+      context: ./docker/tunnel
+      dockerfile: Dockerfile
+    user: "${PUID:-1000}:${PGID:-1000}"
+    image: tcpexposer
+    restart: always
+    depends_on:
+      - server
+    environment:
+      - SUBDOMAIN=${SUBDOMAIN}
+      - TCPEXPOSER_USERNAME=${TCPEXPOSER_USERNAME}
+    secrets:
+      - source: ssh_key
+        target: /ssh-keys/id_rsa
+    deploy:
+      resources:
+        limits:
+          cpus: "0.10"
+          memory: 128M
+    command: >
+      -o StrictHostKeyChecking=no
+      -o UserKnownHostsFile=/dev/null
+      -o PasswordAuthentication=no
+      -i /ssh-keys/id_rsa
+      -R ${SUBDOMAIN}:80:server:8080
+      ${TCPEXPOSER_USERNAME}@tcpexposer.com
+
+secrets:
+  ssh_key:
+    file: ~/.ssh/${SSH_SECRET_KEY_FILENAME:-id_rsa}

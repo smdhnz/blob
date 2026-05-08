@@ -1,0 +1,9 @@
+{
+  "name": "blob-server",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "type": "module",
+  "dependencies": {
+    "bun-types": "latest"
+  }
+}
