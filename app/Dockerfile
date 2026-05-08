@@ -1,5 +1,7 @@
 FROM oven/bun:latest
 
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 # Use PUID/PGID to match host user
 ENV PUID=1000
 ENV PGID=1000

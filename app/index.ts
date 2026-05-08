@@ -42,11 +42,14 @@ function sanitizePath(path: string): string {
 
 function generateSignedUrl(baseUrl: string, relativePath: string, expiresInSeconds = 3600): string {
   const expires = Math.floor(Date.now() / 1000) + expiresInSeconds;
-  const hmac = createHmac("sha256", SECRET_KEY!);
-  hmac.update(`${relativePath}:${expires}`);
-  const signature = hmac.digest("hex");
   const url = new URL(baseUrl);
   url.pathname = relativePath;
+  const normalizedPath = url.pathname;
+
+  const hmac = createHmac("sha256", SECRET_KEY!);
+  hmac.update(`${normalizedPath}:${expires}`);
+  const signature = hmac.digest("hex");
+
   url.searchParams.set("expires", expires.toString());
   url.searchParams.set("signature", signature);
   return url.toString();
@@ -123,7 +126,7 @@ const server = Bun.serve({
       const fullPath = join(DATA_DIR, storagePathRelative);
 
       // Streaming write (efficient)
-      await Bun.write(fullPath, file.stream());
+      await Bun.write(fullPath, file);
 
       db.run(
         "INSERT INTO blobs (id, filename, path, access, contentType, size, uploadedAt, storagePath) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
